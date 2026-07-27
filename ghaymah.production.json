@@ -1,0 +1,18 @@
+{
+  "id": "3dc9f5f9-2918-4a24-b329-6414989d141d",
+  "name": "exam-api-production",
+  "projectId": "6d1bb957-8a2c-4a88-86f3-6a937b7971f0",
+  "ports": [
+    {
+      "expose": true,
+      "number": 5000
+    }
+  ],
+  "publicAccess": {
+    "enabled": true,
+    "domain": "auto"
+  },
+  "resourceTier": "t2",
+  "dockerFileName": "Dockerfile"
+}
+

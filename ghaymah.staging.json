@@ -1,0 +1,18 @@
+{
+  "id": "e577a6f6-fe08-41aa-9d41-0df0833e35e4",
+  "name": "exam-api-staging",
+  "projectId": "6d1bb957-8a2c-4a88-86f3-6a937b7971f0",
+  "ports": [
+    {
+      "expose": true,
+      "number": 5000
+    }
+  ],
+  "publicAccess": {
+    "enabled": true,
+    "domain": "auto"
+  },
+  "resourceTier": "t1",
+  "dockerFileName": "Dockerfile"
+}
+
