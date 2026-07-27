@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitoring Dashboard - Ghaymah Exam Q1</title>
+<style>
+  :root {
+    --up: #22c55e;
+    --down: #ef4444;
+    --bg: #0f172a;
+    --card: #1e293b;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); margin-bottom: 24px; font-size: 14px; }
+
+  .config {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .config input {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background: var(--card);
+    color: var(--text);
+    font-size: 14px;
+  }
+  .config button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    background: #3b82f6;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .config button:hover { background: #2563eb; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #334155;
+  }
+  .card .label {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .card .value {
+    font-size: 28px;
+    font-weight: 700;
+  }
+  .status-up { color: var(--up); }
+  .status-down { color: var(--down); }
+
+  .dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-left: 8px;
+  }
+  .dot-up { background: var(--up); box-shadow: 0 0 8px var(--up); }
+  .dot-down { background: var(--down); box-shadow: 0 0 8px var(--down); }
+
+  .log {
+    background: var(--card);
+    border-radius: 12px;
+    border: 1px solid #334155;
+    padding: 16px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .log table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .log th, .log td { text-align: right; padding: 6px 8px; border-bottom: 1px solid #334155; }
+  .log th { color: var(--muted); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<h1>لوحة مراقبة التطبيق</h1>
+<div class="subtitle">Ghaymah SRE Exam — Q1 Monitoring Dashboard</div>
+
+<div class="config">
+  <input id="appUrl" type="text" placeholder="ضع رابط التطبيق المنشور على ghaymah.systems (مثال: https://myapp.ghaymah.systems)">
+  <button onclick="startMonitoring()">ابدأ المراقبة</button>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="label">الحالة (Status)</div>
+    <div class="value" id="statusValue">—</div>
+  </div>
+  <div class="card">
+    <div class="label">زمن الاستجابة (Response Time)</div>
+    <div class="value" id="latencyValue">— ms</div>
+  </div>
+  <div class="card">
+    <div class="label">عدد الطلبات (Total Requests)</div>
+    <div class="value" id="requestsValue">—</div>
+  </div>
+  <div class="card">
+    <div class="label">وقت التشغيل (Uptime)</div>
+    <div class="value" id="uptimeValue">—</div>
+  </div>
+</div>
+
+<div class="log">
+  <table>
+    <thead>
+      <tr><th>الوقت</th><th>الحالة</th><th>زمن الاستجابة</th></tr>
+    </thead>
+    <tbody id="logBody"></tbody>
+  </table>
+</div>
+
+<script>
+let intervalId = null;
+const MAX_LOG_ROWS = 15;
+
+function startMonitoring() {
+  const url = document.getElementById('appUrl').value.trim();
+  if (!url) { alert('من فضلك ضع رابط التطبيق'); return; }
+  if (intervalId) clearInterval(intervalId);
+  checkNow(url);
+  intervalId = setInterval(() => checkNow(url), 30000);
+}
+
+async function checkNow(baseUrl) {
+  const cleanUrl = baseUrl.replace(/\/$/, '');
+  const start = performance.now();
+  let status = 'DOWN';
+  let statusCode = null;
+
+  try {
+    const res = await fetch(cleanUrl + '/health', { cache: 'no-store' });
+    statusCode = res.status;
+    status = res.ok ? 'UP' : 'DEGRADED';
+  } catch (e) {
+    status = 'DOWN';
+  }
+  const latency = Math.round(performance.now() - start);
+
+  updateStatusCard(status, latency);
+  addLogRow(status, latency);
+
+  // metrics endpoint (requests count + uptime) - best effort
+  try {
+    const mRes = await fetch(cleanUrl + '/metrics', { cache: 'no-store' });
+    if (mRes.ok) {
+      const data = await mRes.json();
+      document.getElementById('requestsValue').textContent = data.total_requests ?? '—';
+      document.getElementById('uptimeValue').textContent = formatUptime(data.uptime_seconds);
+    }
+  } catch (e) { /* metrics optional */ }
+}
+
+function updateStatusCard(status, latency) {
+  const statusEl = document.getElementById('statusValue');
+  statusEl.textContent = status;
+  statusEl.className = 'value ' + (status === 'UP' ? 'status-up' : 'status-down');
+
+  document.getElementById('latencyValue').textContent = latency + ' ms';
+}
+
+function addLogRow(status, latency) {
+  const tbody = document.getElementById('logBody');
+  const row = document.createElement('tr');
+  const dotClass = status === 'UP' ? 'dot-up' : 'dot-down';
+  row.innerHTML = `
+    <td>${new Date().toLocaleTimeString('ar-EG')}</td>
+    <td><span class="dot ${dotClass}"></span>${status}</td>
+    <td>${latency} ms</td>
+  `;
+  tbody.prepend(row);
+  while (tbody.rows.length > MAX_LOG_ROWS) {
+    tbody.deleteRow(tbody.rows.length - 1);
+  }
+}
+
+function formatUptime(seconds) {
+  if (seconds == null) return '—';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${h}h ${m}m`;
+}
+</script>
+
+</body>
+</html>
+
