@@ -3,12 +3,13 @@ name: CI/CD - Build & Deploy to Ghaymah Cloud
 on:
   push:
     branches:
+      - develop
       - main
 
 jobs:
-  # ---------------------------------------------------------
-  # 1) BUILD & TEST
-  # ---------------------------------------------------------
+  # ==========================================================
+  # Build & Smoke Test
+  # ==========================================================
   build-and-test:
     runs-on: ubuntu-latest
 
@@ -28,43 +29,68 @@ jobs:
           docker stop smoke-test
           docker rm smoke-test
 
-  # ---------------------------------------------------------
-  # 2) DEPLOY TO PRODUCTION
-  # ---------------------------------------------------------
-  deploy-production:
+  # ==========================================================
+  # Deploy Staging
+  # ==========================================================
+  deploy-staging:
+    if: github.ref == 'refs/heads/develop'
+
     needs: build-and-test
+
     runs-on: ubuntu-latest
 
-    environment:
-      name: production
+    environment: staging
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
 
       - name: Install Ghaymah CLI
         run: |
           curl -sSL https://cli.ghaymah.systems/install.sh | bash
 
-      - name: Verify Secrets
-        shell: bash
-        env:
-          EMAIL: ${{ secrets.GHAYMAH_EMAIL }}
-          PASSWORD: ${{ secrets.GHAYMAH_PW }}
-        run: |
-          echo "Email Length: ${#EMAIL}"
-          echo "Password Length: ${#PASSWORD}"
-
-      - name: Login to Ghaymah
+      - name: Login
         run: |
           $HOME/ghaymah/bin/gy auth login \
-          --email "${{ secrets.GHAYMAH_EMAIL }}" \
-          --password "${{ secrets.GHAYMAH_PW }}"
+            --email "${{ secrets.GHAYMAH_EMAIL }}" \
+            --password "${{ secrets.GHAYMAH_PW }}"
+
+      - name: Use Staging Config
+        run: |
+          cp .ghaymah.staging.json .ghaymah.json
+
+      - name: Deploy to Staging
+        run: |
+          $HOME/ghaymah/bin/gy resource app launch
+
+  # ==========================================================
+  # Deploy Production
+  # ==========================================================
+  deploy-production:
+    if: github.ref == 'refs/heads/main'
+
+    needs: build-and-test
+
+    runs-on: ubuntu-latest
+
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Ghaymah CLI
+        run: |
+          curl -sSL https://cli.ghaymah.systems/install.sh | bash
+
+      - name: Login
+        run: |
+          $HOME/ghaymah/bin/gy auth login \
+            --email "${{ secrets.GHAYMAH_EMAIL }}" \
+            --password "${{ secrets.GHAYMAH_PW }}"
 
       - name: Use Production Config
         run: |
           cp .ghaymah.production.json .ghaymah.json
 
-      - name: Deploy to Ghaymah
+      - name: Deploy to Production
         run: |
           $HOME/ghaymah/bin/gy resource app launch
