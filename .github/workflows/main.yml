@@ -3,6 +3,7 @@ name: CI/CD - Build & Deploy to Ghaymah Cloud
 on:
   push:
     branches:
+      - develop
       - main
 
 jobs:
@@ -29,9 +30,54 @@ jobs:
           docker rm smoke-test
 
   # ---------------------------------------------------------
-  # 2) DEPLOY TO PRODUCTION
+  # 2) DEPLOY TO STAGING
+  # ---------------------------------------------------------
+  deploy-staging:
+    if: github.ref == 'refs/heads/develop'
+
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    environment:
+      name: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install Ghaymah CLI
+        run: |
+          curl -sSL https://cli.ghaymah.systems/install.sh | bash
+
+      - name: Verify Secrets
+        shell: bash
+        env:
+          EMAIL: ${{ secrets.GHAYMAH_EMAIL }}
+          PASSWORD: ${{ secrets.GHAYMAH_PW }}
+        run: |
+          echo "Email Length: ${#EMAIL}"
+          echo "Password Length: ${#PASSWORD}"
+
+      - name: Login to Ghaymah
+        run: |
+          $HOME/ghaymah/bin/gy auth login \
+            --email "${{ secrets.GHAYMAH_EMAIL }}" \
+            --password "${{ secrets.GHAYMAH_PW }}"
+
+      - name: Use Staging Config
+        run: |
+          cp .ghaymah.staging.json .ghaymah.json
+
+      - name: Deploy to Ghaymah
+        run: |
+          $HOME/ghaymah/bin/gy resource app launch
+
+  # ---------------------------------------------------------
+  # 3) DEPLOY TO PRODUCTION
   # ---------------------------------------------------------
   deploy-production:
+    if: github.ref == 'refs/heads/main'
+
     needs: build-and-test
     runs-on: ubuntu-latest
 
@@ -58,8 +104,8 @@ jobs:
       - name: Login to Ghaymah
         run: |
           $HOME/ghaymah/bin/gy auth login \
-          --email "${{ secrets.GHAYMAH_EMAIL }}" \
-          --password "${{ secrets.GHAYMAH_PW }}"
+            --email "${{ secrets.GHAYMAH_EMAIL }}" \
+            --password "${{ secrets.GHAYMAH_PW }}"
 
       - name: Use Production Config
         run: |
