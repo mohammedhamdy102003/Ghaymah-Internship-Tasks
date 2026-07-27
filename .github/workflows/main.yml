@@ -3,81 +3,68 @@ name: CI/CD - Build & Deploy to Ghaymah Cloud
 on:
   push:
     branches:
-      - main       # production
-      - develop    # staging
-  pull_request:
-    branches:
       - main
 
 jobs:
   # ---------------------------------------------------------
-  # 1) BUILD & TEST — runs on every push / PR, no approval needed
+  # 1) BUILD & TEST
   # ---------------------------------------------------------
   build-and-test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@v5
 
-      - name: Build Docker image (validation only)
-        run: docker build -t exam-api:${{ github.sha }} .
+      - name: Build Docker image
+        run: |
+          docker build -t exam-api:${{ github.sha }} .
 
-      - name: Smoke test the image locally
+      - name: Smoke Test
         run: |
           docker run -d -p 5000:5000 --name smoke-test exam-api:${{ github.sha }}
-          sleep 5
-          curl -f http://localhost:5000/health || (docker logs smoke-test && exit 1)
+          sleep 8
+          curl -f http://localhost:5000/health
           docker stop smoke-test
+          docker rm smoke-test
 
   # ---------------------------------------------------------
-  # 2) DEPLOY TO STAGING — automatic, no approval
-  #    Triggers when pushing to "develop"
-  # ---------------------------------------------------------
-  deploy-staging:
-    needs: build-and-test
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    environment: staging   # no required reviewers configured on this one
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5.0.0
-
-      - name: Install Ghaymah CLI
-        run: curl -sSL https://cli.ghaymah.systems/install.sh | bash
-
-      - name: Login to Ghaymah
-        run: $HOME/ghaymah/bin/gy auth login --email "${{ secrets.GHAYMAH_EMAIL }}" --password "${{ secrets.GHAYMAH_PW }}"
-
-      - name: Use staging config
-        run: cp .ghaymah.staging.json .ghaymah.json
-
-      - name: Deploy to Ghaymah (staging)
-        run: $HOME/ghaymah/bin/gy resource app launch
-
-  # ---------------------------------------------------------
-  # 3) DEPLOY TO PRODUCTION — requires manual approval
-  #    Triggers when pushing to "main"
-  #    The "environment: production" below is what enforces the
-  #    approval gate — set "Required reviewers" on this environment
-  #    in: Repo Settings -> Environments -> production
+  # 2) DEPLOY TO PRODUCTION
   # ---------------------------------------------------------
   deploy-production:
     needs: build-and-test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-    environment: production   # <-- manual approval enforced here
+
+    environment:
+      name: production
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@v5
 
       - name: Install Ghaymah CLI
-        run: curl -sSL https://cli.ghaymah.systems/install.sh | bash
+        run: |
+          curl -sSL https://cli.ghaymah.systems/install.sh | bash
+
+      - name: Verify Secrets
+        shell: bash
+        env:
+          EMAIL: ${{ secrets.GHAYMAH_EMAIL }}
+          PASSWORD: ${{ secrets.GHAYMAH_PW }}
+        run: |
+          echo "Email Length: ${#EMAIL}"
+          echo "Password Length: ${#PASSWORD}"
 
       - name: Login to Ghaymah
-        run: $HOME/ghaymah/bin/gy auth login --email "${{ secrets.GHAYMAH_EMAIL }}" --password "${{ secrets.GHAYMAH_PW }}"
+        run: |
+          $HOME/ghaymah/bin/gy auth login \
+          --email "${{ secrets.GHAYMAH_EMAIL }}" \
+          --password "${{ secrets.GHAYMAH_PW }}"
 
-      - name: Use production config
-        run: cp .ghaymah.production.json .ghaymah.json
+      - name: Use Production Config
+        run: |
+          cp .ghaymah.production.json .ghaymah.json
 
-      - name: Deploy to Ghaymah (production)
-        run: $HOME/ghaymah/bin/gy resource app launch
+      - name: Deploy to Ghaymah
+        run: |
+          $HOME/ghaymah/bin/gy resource app launch
