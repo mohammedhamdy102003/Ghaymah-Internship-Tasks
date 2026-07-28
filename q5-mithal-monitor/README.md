@@ -1,6 +1,10 @@
 # Mithal Monitor
 
-A Flask-based monitoring application that periodically collects website metrics and exposes them through REST APIs. The application is containerized with Docker and deployed on Ghaymah.
+A Flask-based monitoring application that periodically collects website metrics and exposes them through REST APIs.
+
+The application is containerized with Docker and deployed on Ghaymah Cloud.
+
+---
 
 ## Features
 
@@ -23,7 +27,7 @@ A Flask-based monitoring application that periodically collects website metrics 
 - SQLite
 - Docker
 - Gunicorn
-- Ghaymah
+- Ghaymah Cloud
 
 ---
 
@@ -35,7 +39,7 @@ A Flask-based monitoring application that periodically collects website metrics 
 GET /health
 ```
 
-Example Response
+Example Response:
 
 ```json
 {
@@ -51,7 +55,7 @@ Example Response
 GET /api/metrics
 ```
 
-Example Response
+Example Response:
 
 ```json
 [
@@ -72,28 +76,28 @@ Example Response
 
 ## Running Locally
 
-Clone the repository
+Clone the repository:
 
 ```bash
 git clone <repo-url>
 cd Q5-Mithal-Monitor
 ```
 
-Install dependencies
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Run the application
+Run the application:
 
 ```bash
 python app.py
 ```
 
-The application will be available on
+The application will be available on:
 
-```
+```text
 http://localhost:5000
 ```
 
@@ -101,13 +105,13 @@ http://localhost:5000
 
 ## Docker
 
-Build the image
+Build the image:
 
 ```bash
 docker build -t mithal-monitor .
 ```
 
-Run the container
+Run the container:
 
 ```bash
 docker run -p 80:80 mithal-monitor
@@ -117,40 +121,61 @@ docker run -p 80:80 mithal-monitor
 
 ## Deployment
 
-The application is deployed on Ghaymah.
+The application is deployed on Ghaymah Cloud.
 
 Deployment URL:
 
-```
+```text
 https://mithal-monitor-74639f9fbe38.hosted.ghaymah.systems
 ```
 
-Health Endpoint
+Health Endpoint:
 
-```
+```text
 https://mithal-monitor-74639f9fbe38.hosted.ghaymah.systems/health
 ```
 
-Metrics Endpoint
+Metrics Endpoint:
 
-```
+```text
 https://mithal-monitor-74639f9fbe38.hosted.ghaymah.systems/api/metrics
 ```
 
 ---
 
+## Monitoring Dashboard
+
+The deployed Mithal Monitor application provides a dashboard for monitoring website availability and performance metrics.
+
+The dashboard displays:
+
+- Current service status
+- HTTP response latency
+- DNS lookup time
+- Search latency
+- SSL certificate expiration status
+- Historical monitoring data
+- Recent monitoring records
+
+### Dashboard Preview
+
+![Mithal Monitor Dashboard](images/mointor-dashboard.jpg)
+
+---
+
 ## Project Structure
 
-```
-Q5-Mithal-Monitor/
-│
+```text
+q5-mithal-monitor/
+
 ├── app.py
+├── monitor.py
+├── monitor-data.json
 ├── requirements.txt
 ├── Dockerfile
-├── monitor.db
 ├── templates/
-├── static/
-├── .ghaymah.json
+├── images/
+│   └── mointor-dashboard.jpg
 └── README.md
 ```
 

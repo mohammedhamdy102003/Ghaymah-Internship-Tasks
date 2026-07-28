@@ -10,7 +10,7 @@ The pipeline automatically builds the application, performs a smoke test, deploy
 
 # Pipeline Workflow
 
-```
+```text
 Developer
     │
     │ Push
@@ -90,6 +90,30 @@ Purpose:
 - Stable release
 - Manual verification before deployment
 - Reduce production risks
+
+---
+
+# Pipeline Evidence
+
+The following screenshots demonstrate successful execution of the CI/CD pipeline and deployment for both **Staging** and **Production** environments.
+
+## Staging Pipeline
+
+![Staging Pipeline](images/staging-pipeline-success.jpg)
+
+---
+
+## Production Pipeline
+
+![Production Pipeline](images/production-pipeline-success.jpg)
+
+---
+
+## Deployment Verification
+
+The following screenshot confirms that both **Staging** and **Production** applications were successfully deployed on **Ghaymah Cloud**.
+
+![Deployment Verification](images/production-and-staging-deployment.jpg)
 
 ---
 
@@ -180,12 +204,13 @@ No credentials are stored inside the repository.
 
 # Result
 
-The pipeline successfully performs:
+The pipeline successfully provides:
 
 - Automated Docker image build
-- Smoke testing
-- Automatic deployment to Staging
-- Manual approval before Production
+- Automated smoke testing
+- Automatic deployment to the Staging environment
+- Manual approval before Production deployment
+- Secure deployment using GitHub Secrets
 - Production deployment using Ghaymah CLI
 
-This implementation provides a reliable and production-ready CI/CD workflow.
+This implementation demonstrates a complete production-ready CI/CD workflow following modern DevOps and SRE best practices.
