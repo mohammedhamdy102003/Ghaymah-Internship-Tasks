@@ -1,0 +1,17 @@
+{
+  "id": "bbf0b1b5-2214-479e-b5e7-00be81bd0e7d",
+  "name": "mithal-monitor",
+  "projectId": "6d1bb957-8a2c-4a88-86f3-6a937b7971f0",
+  "ports": [
+    {
+      "expose": true,
+      "number": 5000
+    }
+  ],
+  "publicAccess": {
+    "enabled": true,
+    "domain": "auto"
+  },
+  "resourceTier": "t1",
+  "dockerFileName": "Dockerfile"
+}
